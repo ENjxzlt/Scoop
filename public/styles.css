@@ -11,6 +11,10 @@
   --radius: 10px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -37,6 +41,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .logo {
