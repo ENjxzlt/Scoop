@@ -49,18 +49,26 @@ des Volumes an.
 
 ### Variante A: Custom App über die TrueNAS-UI
 
+TrueNAS SCALE baut Custom Apps nicht selbst aus einem Dockerfile – es wird
+immer ein fertiges Image aus einer Registry gezogen. Ein GitHub-Actions-
+Workflow (`.github/workflows/docker-publish.yml`) baut das Image bei jedem
+Push auf `main` automatisch und veröffentlicht es unter
+`ghcr.io/enjxzlt/scoop:latest` (GitHub Container Registry). Beim ersten
+Push muss das Package einmalig unter
+`https://github.com/enjxzlt?tab=packages` → Package-Einstellungen auf
+**Public** gestellt werden, sonst kann TrueNAS es nicht pullen (oder du
+hinterlegst stattdessen Registry-Zugangsdaten in der Custom-App-UI).
+
 1. Erstelle im Pool ein Dataset für die Daten, z. B.
    `/mnt/<pool>/apps/scoop/data`.
 2. Gehe in der TrueNAS-UI zu **Apps → Discover Apps → Custom App**
    (bzw. "Install via YAML", je nach TrueNAS-Version).
-3. Repository/Image: baue das Image vorher (siehe unten) und push es in eine
-   Registry (z. B. Docker Hub oder GHCR), oder nutze den YAML-Editor der
-   Custom App und trage folgendes Compose-Snippet ein:
+3. Trage folgendes Compose-Snippet ein:
 
    ```yaml
    services:
      scoop:
-       image: <dein-registry>/scoop:latest
+       image: ghcr.io/enjxzlt/scoop:latest
        restart: unless-stopped
        ports:
          - "3000:3000"
@@ -73,6 +81,10 @@ des Volumes an.
 
 4. Speichern und starten. Die App ist danach unter
    `http://<truenas-ip>:3000` erreichbar.
+
+Um auf eine neue Version zu aktualisieren, in der Custom-App-UI einfach
+**Update** bzw. Image neu pullen (`docker compose pull && docker compose up -d`
+bei Variante B).
 
 ### Variante B: Docker Compose per SSH (z. B. mit einer eigenen Compose-App/Dockge)
 
@@ -91,11 +103,16 @@ des Volumes an.
    docker compose up -d --build
    ```
 
-### Image selbst bauen und in eine Registry pushen
+### Image manuell bauen und pushen (optional)
+
+Normalerweise übernimmt das der GitHub-Actions-Workflow automatisch bei
+jedem Push auf `main`. Falls du dennoch manuell bauen willst (z. B. lokaler
+Test oder andere Registry):
 
 ```bash
-docker build -t <dein-registry>/scoop:latest .
-docker push <dein-registry>/scoop:latest
+docker build -t ghcr.io/enjxzlt/scoop:latest .
+docker login ghcr.io -u enjxzlt
+docker push ghcr.io/enjxzlt/scoop:latest
 ```
 
 ## Konfiguration (Umgebungsvariablen)
