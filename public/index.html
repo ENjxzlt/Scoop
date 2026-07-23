@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Scoop – Shopping Listen</title>
     <link rel="stylesheet" href="/styles.css" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%92%3C/text%3E%3C/svg%3E"
-    />
+    <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
   <body>
     <div class="app">
-      <aside class="sidebar">
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-          <span class="logo">🛒 Scoop</span>
+          <img src="/logo.png" alt="" class="logo-icon" />
+          <span class="logo">Scoop</span>
+          <button
+            id="sidebarClose"
+            class="icon-btn sidebar-close"
+            type="button"
+            aria-label="Menü schließen"
+          >
+            ✕
+          </button>
         </div>
         <div class="list-nav" id="listNav"></div>
         <form id="newListForm" class="new-list-form">
@@ -24,39 +31,51 @@
         <p id="listStatus" class="status-msg"></p>
       </aside>
 
-      <main class="content">
-        <header class="content-header">
-          <h1 id="currentListName">Willkommen</h1>
-          <div class="header-actions">
-            <button id="renameListBtn" class="btn-ghost" hidden>Umbenennen</button>
-            <button id="deleteListBtn" class="btn-ghost danger" hidden>Löschen</button>
-          </div>
-        </header>
+      <div class="main-column">
+        <main class="content">
+          <header class="content-header">
+            <div class="header-title">
+              <button
+                id="sidebarToggle"
+                class="icon-btn"
+                type="button"
+                aria-label="Menü umschalten"
+              >
+                ☰
+              </button>
+              <h1 id="currentListName">Willkommen</h1>
+            </div>
+            <div class="header-actions">
+              <button id="renameListBtn" class="btn-ghost" hidden>Umbenennen</button>
+              <button id="deleteListBtn" class="btn-ghost danger" hidden>Löschen</button>
+            </div>
+          </header>
 
-        <form id="addItemForm" class="add-item-form" hidden>
-          <input
-            type="url"
-            id="productUrl"
-            placeholder="Produkt-Link einfügen (https://…)"
-            required
-          />
-          <button type="submit">Hinzufügen</button>
-        </form>
-        <p id="addStatus" class="status-msg"></p>
+          <form id="addItemForm" class="add-item-form" hidden>
+            <input
+              type="url"
+              id="productUrl"
+              placeholder="Produkt-Link einfügen (https://…)"
+              required
+            />
+            <button type="submit">Hinzufügen</button>
+          </form>
+          <p id="addStatus" class="status-msg"></p>
 
-        <div id="itemsGrid" class="items-grid"></div>
-        <p id="emptyState" class="empty-state" hidden>
-          Noch keine Produkte in dieser Liste. Füge oben einen Link hinzu.
-        </p>
-        <p id="noListState" class="empty-state">
-          Erstelle links eine Liste, um loszulegen.
-        </p>
-      </main>
+          <div id="itemsGrid" class="items-grid"></div>
+          <p id="emptyState" class="empty-state" hidden>
+            Noch keine Produkte in dieser Liste. Füge oben einen Link hinzu.
+          </p>
+          <p id="noListState" class="empty-state">
+            Erstelle links eine Liste, um loszulegen.
+          </p>
+        </main>
 
-      <footer class="total-bar" id="totalBar" hidden>
-        <span id="totalCount"></span>
-        <span class="total-amount">Summe: <strong id="totalAmount">0,00 €</strong></span>
-      </footer>
+        <footer class="total-bar" id="totalBar" hidden>
+          <span id="totalCount"></span>
+          <span class="total-amount">Summe: <strong id="totalAmount">0,00 €</strong></span>
+        </footer>
+      </div>
     </div>
 
     <script src="/app.js"></script>
