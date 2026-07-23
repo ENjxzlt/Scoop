@@ -19,6 +19,7 @@ const el = {
   deleteListBtn: document.getElementById('deleteListBtn'),
   addItemForm: document.getElementById('addItemForm'),
   productUrl: document.getElementById('productUrl'),
+  productQuantity: document.getElementById('productQuantity'),
   addStatus: document.getElementById('addStatus'),
   itemsGrid: document.getElementById('itemsGrid'),
   emptyState: document.getElementById('emptyState'),
@@ -38,6 +39,7 @@ const el = {
   quickAddImage: document.getElementById('quickAddImage'),
   quickAddPrice: document.getElementById('quickAddPrice'),
   quickAddCurrency: document.getElementById('quickAddCurrency'),
+  quickAddQuantity: document.getElementById('quickAddQuantity'),
   quickAddStatus: document.getElementById('quickAddStatus'),
   quickAddCancelBtn: document.getElementById('quickAddCancelBtn'),
 };
@@ -255,6 +257,15 @@ function renderItemEditForm(item) {
   priceLabel.textContent = 'Preis';
   priceLabel.appendChild(priceRow);
 
+  const quantityLabel = document.createElement('label');
+  quantityLabel.textContent = 'Menge';
+  const quantityInput = document.createElement('input');
+  quantityInput.type = 'number';
+  quantityInput.step = '1';
+  quantityInput.min = '1';
+  quantityInput.value = item.quantity ?? 1;
+  quantityLabel.appendChild(quantityInput);
+
   const editStatus = document.createElement('p');
   editStatus.className = 'status-msg';
 
@@ -291,6 +302,7 @@ function renderItemEditForm(item) {
           url,
           price: priceInput.value === '' ? null : parseFloat(priceInput.value),
           currency: currencyInput.value.trim() || 'EUR',
+          quantity: quantityInput.value,
         }),
       });
       state.editingItemId = null;
@@ -305,6 +317,7 @@ function renderItemEditForm(item) {
   form.appendChild(imageLabel);
   form.appendChild(urlLabel);
   form.appendChild(priceLabel);
+  form.appendChild(quantityLabel);
   form.appendChild(editStatus);
   form.appendChild(actions);
 
@@ -343,7 +356,7 @@ function renderItemCard(item) {
   title.textContent = item.title || item.url;
 
   const priceRow = document.createElement('div');
-  priceRow.className = 'item-price-row';
+  priceRow.className = 'item-price-row item-price-row-view';
 
   const priceInput = document.createElement('input');
   priceInput.type = 'number';
@@ -369,8 +382,35 @@ function renderItemCard(item) {
   currency.className = 'item-currency';
   currency.textContent = item.currency || 'EUR';
 
+  const qtyTimes = document.createElement('span');
+  qtyTimes.className = 'item-qty-times';
+  qtyTimes.textContent = '×';
+
+  const qtyInput = document.createElement('input');
+  qtyInput.type = 'number';
+  qtyInput.className = 'item-qty-input';
+  qtyInput.step = '1';
+  qtyInput.min = '1';
+  qtyInput.title = 'Menge';
+  qtyInput.value = item.quantity ?? 1;
+  qtyInput.addEventListener('change', async () => {
+    try {
+      const updated = await api(`/api/items/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ quantity: qtyInput.value }),
+      });
+      item.quantity = updated.quantity;
+      qtyInput.value = updated.quantity;
+      renderTotal();
+    } catch (err) {
+      showStatus(err.message, true);
+    }
+  });
+
   priceRow.appendChild(priceInput);
   priceRow.appendChild(currency);
+  priceRow.appendChild(qtyTimes);
+  priceRow.appendChild(qtyInput);
 
   const actions = document.createElement('div');
   actions.className = 'item-actions';
@@ -427,7 +467,7 @@ function renderItemCard(item) {
 function renderTotal() {
   const priced = state.items.filter((i) => typeof i.price === 'number');
   const currencies = new Set(priced.map((i) => i.currency || 'EUR'));
-  const total = priced.reduce((sum, i) => sum + i.price, 0);
+  const total = priced.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0);
   const currency = currencies.size === 1 ? [...currencies][0] : 'EUR';
 
   el.totalCount.textContent = `${state.items.length} Artikel${
@@ -502,9 +542,10 @@ el.addItemForm.addEventListener('submit', async (e) => {
   try {
     const { item, scrapeError } = await api(`/api/lists/${state.currentListId}/items`, {
       method: 'POST',
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, quantity: el.productQuantity.value }),
     });
     el.productUrl.value = '';
+    el.productQuantity.value = 1;
     showStatus(
       scrapeError
         ? `Hinzugefügt, aber Bild/Preis konnten nicht automatisch geladen werden (${scrapeError}). Bitte manuell ergänzen.`
@@ -596,6 +637,7 @@ function checkPendingQuickAdd() {
   el.quickAddImage.value = image;
   el.quickAddPrice.value = price ? (parseGermanOrUsPrice(price) ?? '') : '';
   el.quickAddCurrency.value = 'EUR';
+  el.quickAddQuantity.value = 1;
   showStatus('', false, el.quickAddStatus);
   openModal(el.quickAddModal);
 }
@@ -633,6 +675,7 @@ el.quickAddForm.addEventListener('submit', async (e) => {
         image: el.quickAddImage.value.trim() || null,
         price: el.quickAddPrice.value === '' ? null : parseFloat(el.quickAddPrice.value),
         currency: el.quickAddCurrency.value.trim() || 'EUR',
+        quantity: el.quickAddQuantity.value,
       }),
     });
     closeModals();

@@ -61,6 +61,16 @@
               placeholder="Produkt-Link einfügen (https://…)"
               required
             />
+            <input
+              type="number"
+              id="productQuantity"
+              class="add-item-quantity"
+              step="1"
+              min="1"
+              value="1"
+              title="Menge"
+              aria-label="Menge"
+            />
             <button type="submit">Hinzufügen</button>
           </form>
           <p id="addStatus" class="status-msg"></p>
@@ -123,6 +133,10 @@
             <input type="number" id="quickAddPrice" step="0.01" min="0" placeholder="Preis" />
             <input type="text" id="quickAddCurrency" class="item-currency-input" maxlength="3" />
           </div>
+        </label>
+        <label
+          >Menge
+          <input type="number" id="quickAddQuantity" step="1" min="1" value="1" />
         </label>
         <p id="quickAddStatus" class="status-msg"></p>
         <div class="item-edit-actions">

@@ -205,6 +205,10 @@ body {
   min-width: 0;
 }
 
+.add-item-form .add-item-quantity {
+  flex: 0 0 70px;
+}
+
 .status-msg {
   min-height: 1.2em;
   font-size: 0.85rem;
@@ -334,6 +338,10 @@ button:hover {
   margin-top: auto;
 }
 
+.item-price-row-view {
+  flex-wrap: wrap;
+}
+
 .item-price-row input {
   width: 90px;
   padding: 6px 8px;
@@ -342,6 +350,17 @@ button:hover {
 .item-currency {
   color: var(--text-dim);
   font-size: 0.85rem;
+}
+
+.item-qty-times {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+.item-price-row .item-qty-input {
+  width: 48px;
+  padding: 6px 4px;
+  text-align: center;
 }
 
 .item-actions {
@@ -502,14 +521,22 @@ button:hover {
     font-size: 1.3rem;
   }
 
-  .add-item-form {
-    flex-direction: column;
-  }
-
   .add-item-form input,
   .add-item-form button {
     flex-basis: auto;
+  }
+
+  .add-item-form #productUrl {
+    flex: 1 1 100%;
     width: 100%;
+  }
+
+  .add-item-form .add-item-quantity {
+    flex: 0 0 70px;
+  }
+
+  .add-item-form button {
+    flex: 1;
   }
 }
 
