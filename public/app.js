@@ -8,6 +8,7 @@ const el = {
   listNav: document.getElementById('listNav'),
   newListForm: document.getElementById('newListForm'),
   newListName: document.getElementById('newListName'),
+  listStatus: document.getElementById('listStatus'),
   currentListName: document.getElementById('currentListName'),
   renameListBtn: document.getElementById('renameListBtn'),
   deleteListBtn: document.getElementById('deleteListBtn'),
@@ -222,12 +223,12 @@ function renderTotal() {
   el.totalAmount.textContent = formatMoney(total, currency);
 }
 
-function showStatus(message, isError = false) {
-  el.addStatus.textContent = message;
-  el.addStatus.classList.toggle('error', isError);
+function showStatus(message, isError = false, target = el.addStatus) {
+  target.textContent = message;
+  target.classList.toggle('error', isError);
   if (message) {
     setTimeout(() => {
-      if (el.addStatus.textContent === message) el.addStatus.textContent = '';
+      if (target.textContent === message) target.textContent = '';
     }, 5000);
   }
 }
@@ -242,10 +243,20 @@ el.newListForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = el.newListName.value.trim();
   if (!name) return;
-  const list = await api('/api/lists', { method: 'POST', body: JSON.stringify({ name }) });
-  el.newListName.value = '';
-  await loadLists();
-  selectList(list.id);
+
+  const submitBtn = el.newListForm.querySelector('button');
+  submitBtn.disabled = true;
+  try {
+    const list = await api('/api/lists', { method: 'POST', body: JSON.stringify({ name }) });
+    el.newListName.value = '';
+    showStatus('', false, el.listStatus);
+    await loadLists();
+    selectList(list.id);
+  } catch (err) {
+    showStatus(err.message, true, el.listStatus);
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 
 el.renameListBtn.addEventListener('click', async () => {
