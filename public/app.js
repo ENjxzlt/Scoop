@@ -2,6 +2,7 @@ const state = {
   lists: [],
   currentListId: null,
   items: [],
+  editingItemId: null,
 };
 
 const el = {
@@ -25,6 +26,20 @@ const el = {
   totalBar: document.getElementById('totalBar'),
   totalCount: document.getElementById('totalCount'),
   totalAmount: document.getElementById('totalAmount'),
+  modalBackdrop: document.getElementById('modalBackdrop'),
+  bookmarkletBtn: document.getElementById('bookmarkletBtn'),
+  bookmarkletModal: document.getElementById('bookmarkletModal'),
+  bookmarkletLink: document.getElementById('bookmarkletLink'),
+  bookmarkletCloseBtn: document.getElementById('bookmarkletCloseBtn'),
+  quickAddModal: document.getElementById('quickAddModal'),
+  quickAddForm: document.getElementById('quickAddForm'),
+  quickAddList: document.getElementById('quickAddList'),
+  quickAddTitle: document.getElementById('quickAddTitle'),
+  quickAddImage: document.getElementById('quickAddImage'),
+  quickAddPrice: document.getElementById('quickAddPrice'),
+  quickAddCurrency: document.getElementById('quickAddCurrency'),
+  quickAddStatus: document.getElementById('quickAddStatus'),
+  quickAddCancelBtn: document.getElementById('quickAddCancelBtn'),
 };
 
 const desktopQuery = window.matchMedia('(min-width: 901px)');
@@ -156,9 +171,146 @@ function renderItems() {
   el.emptyState.hidden = state.items.length > 0 || !state.currentListId;
 
   for (const item of state.items) {
-    el.itemsGrid.appendChild(renderItemCard(item));
+    el.itemsGrid.appendChild(
+      item.id === state.editingItemId ? renderItemEditForm(item) : renderItemCard(item)
+    );
   }
   renderTotal();
+}
+
+function renderItemEditForm(item) {
+  const card = document.createElement('div');
+  card.className = 'item-card';
+
+  const imageWrap = document.createElement('div');
+  imageWrap.className = 'item-image-wrap';
+  const preview = document.createElement('img');
+  preview.alt = '';
+  preview.hidden = !item.image;
+  if (item.image) preview.src = item.image;
+  const placeholder = document.createElement('span');
+  placeholder.className = 'placeholder';
+  placeholder.textContent = '🛒';
+  placeholder.hidden = Boolean(item.image);
+  imageWrap.appendChild(preview);
+  imageWrap.appendChild(placeholder);
+
+  const form = document.createElement('form');
+  form.className = 'item-edit-form';
+
+  const titleLabel = document.createElement('label');
+  titleLabel.textContent = 'Titel';
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.value = item.title || '';
+  titleLabel.appendChild(titleInput);
+
+  const imageLabel = document.createElement('label');
+  imageLabel.textContent = 'Bild-URL';
+  const imageInput = document.createElement('input');
+  imageInput.type = 'url';
+  imageInput.placeholder = 'https://…';
+  imageInput.value = item.image || '';
+  imageInput.addEventListener('input', () => {
+    const url = imageInput.value.trim();
+    if (url) {
+      preview.src = url;
+      preview.hidden = false;
+      placeholder.hidden = true;
+    } else {
+      preview.hidden = true;
+      placeholder.hidden = false;
+    }
+  });
+  preview.addEventListener('error', () => {
+    preview.hidden = true;
+    placeholder.hidden = false;
+  });
+  imageLabel.appendChild(imageInput);
+
+  const urlLabel = document.createElement('label');
+  urlLabel.textContent = 'Produkt-Link';
+  const urlInput = document.createElement('input');
+  urlInput.type = 'url';
+  urlInput.required = true;
+  urlInput.value = item.url || '';
+  urlLabel.appendChild(urlInput);
+
+  const priceRow = document.createElement('div');
+  priceRow.className = 'item-price-row';
+  const priceInput = document.createElement('input');
+  priceInput.type = 'number';
+  priceInput.step = '0.01';
+  priceInput.min = '0';
+  priceInput.placeholder = 'Preis';
+  priceInput.value = item.price ?? '';
+  const currencyInput = document.createElement('input');
+  currencyInput.type = 'text';
+  currencyInput.className = 'item-currency-input';
+  currencyInput.maxLength = 3;
+  currencyInput.value = item.currency || 'EUR';
+  priceRow.appendChild(priceInput);
+  priceRow.appendChild(currencyInput);
+  const priceLabel = document.createElement('label');
+  priceLabel.textContent = 'Preis';
+  priceLabel.appendChild(priceRow);
+
+  const editStatus = document.createElement('p');
+  editStatus.className = 'status-msg';
+
+  const actions = document.createElement('div');
+  actions.className = 'item-edit-actions';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'submit';
+  saveBtn.textContent = 'Speichern';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'btn-ghost';
+  cancelBtn.textContent = 'Abbrechen';
+  cancelBtn.addEventListener('click', () => {
+    state.editingItemId = null;
+    renderItems();
+  });
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = urlInput.value.trim();
+    if (!url) return;
+    saveBtn.disabled = true;
+    try {
+      await api(`/api/items/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: titleInput.value.trim(),
+          image: imageInput.value.trim() || null,
+          url,
+          price: priceInput.value === '' ? null : parseFloat(priceInput.value),
+          currency: currencyInput.value.trim() || 'EUR',
+        }),
+      });
+      state.editingItemId = null;
+      await Promise.all([loadItems(), loadLists()]);
+    } catch (err) {
+      showStatus(err.message, true, editStatus);
+      saveBtn.disabled = false;
+    }
+  });
+
+  form.appendChild(titleLabel);
+  form.appendChild(imageLabel);
+  form.appendChild(urlLabel);
+  form.appendChild(priceLabel);
+  form.appendChild(editStatus);
+  form.appendChild(actions);
+
+  card.appendChild(imageWrap);
+  card.appendChild(form);
+  return card;
 }
 
 function renderItemCard(item) {
@@ -223,8 +375,18 @@ function renderItemCard(item) {
   const actions = document.createElement('div');
   actions.className = 'item-actions';
 
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✎';
+  editBtn.setAttribute('aria-label', 'Bearbeiten');
+  editBtn.title = 'Titel, Bild oder Preis manuell eintragen';
+  editBtn.addEventListener('click', () => {
+    state.editingItemId = item.id;
+    renderItems();
+  });
+
   const refreshBtn = document.createElement('button');
-  refreshBtn.textContent = '⟳ Aktualisieren';
+  refreshBtn.textContent = '⟳';
+  refreshBtn.setAttribute('aria-label', 'Aktualisieren');
   refreshBtn.title = 'Bild/Preis neu vom Link laden';
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
@@ -239,13 +401,17 @@ function renderItemCard(item) {
   });
 
   const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = '✕ Entfernen';
+  deleteBtn.textContent = '✕';
+  deleteBtn.className = 'item-action-danger';
+  deleteBtn.setAttribute('aria-label', 'Entfernen');
+  deleteBtn.title = 'Aus der Liste entfernen';
   deleteBtn.addEventListener('click', async () => {
     if (!confirm('Dieses Produkt aus der Liste entfernen?')) return;
     await api(`/api/items/${item.id}`, { method: 'DELETE' });
     await Promise.all([loadItems(), loadLists()]);
   });
 
+  actions.appendChild(editBtn);
   actions.appendChild(refreshBtn);
   actions.appendChild(deleteBtn);
 
@@ -352,4 +518,137 @@ el.addItemForm.addEventListener('submit', async (e) => {
   }
 });
 
-loadLists().catch((err) => showStatus(err.message, true));
+// --- Quick-Add bookmarklet -------------------------------------------
+
+function buildBookmarkletHref() {
+  const src = `
+    (function(){
+      function pick(sels){
+        for (var i = 0; i < sels.length; i++) {
+          var e = document.querySelector(sels[i]);
+          if (!e) continue;
+          var v = e.getAttribute('content') || e.getAttribute('data-old-hires') || e.getAttribute('src') || e.textContent;
+          if (v && v.trim()) return v.trim();
+        }
+        return '';
+      }
+      var title = pick(['#productTitle', 'h1.x-item-title__mainTitle .ux-textspans', 'meta[property="og:title"]']) || document.title || '';
+      var image = pick(['#landingImage', '.ux-image-carousel-item img', '#icImg', 'meta[property="og:image"]']) || '';
+      var price = pick(['#corePrice_feature_div .a-price .a-offscreen', '.a-price .a-offscreen', '.x-price-primary .ux-textspans', 'meta[property="product:price:amount"]', 'meta[property="og:price:amount"]', '[itemprop="price"]']) || '';
+      var params = new URLSearchParams();
+      params.set('add', '1');
+      params.set('url', location.href);
+      if (title) params.set('title', title.slice(0, 300));
+      if (image) params.set('image', image);
+      if (price) params.set('price', price);
+      window.open('${window.location.origin}/?' + params.toString(), '_blank');
+    })();
+  `.replace(/\s+/g, ' ').trim();
+  return `javascript:${encodeURIComponent(src)}`;
+}
+
+function openModal(modal) {
+  el.modalBackdrop.hidden = false;
+  modal.hidden = false;
+}
+
+function closeModals() {
+  el.modalBackdrop.hidden = true;
+  el.bookmarkletModal.hidden = true;
+  el.quickAddModal.hidden = true;
+}
+
+el.bookmarkletLink.href = buildBookmarkletHref();
+el.bookmarkletBtn.addEventListener('click', () => openModal(el.bookmarkletModal));
+el.bookmarkletCloseBtn.addEventListener('click', closeModals);
+el.modalBackdrop.addEventListener('click', closeModals);
+
+function populateQuickAddListSelect() {
+  el.quickAddList.innerHTML = '';
+  for (const list of state.lists) {
+    const option = document.createElement('option');
+    option.value = list.id;
+    option.textContent = list.name;
+    el.quickAddList.appendChild(option);
+  }
+  if (state.currentListId) el.quickAddList.value = state.currentListId;
+}
+
+function checkPendingQuickAdd() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('add') !== '1') return;
+
+  const url = params.get('url') || '';
+  const title = params.get('title') || '';
+  const image = params.get('image') || '';
+  const price = params.get('price') || '';
+  history.replaceState(null, '', window.location.pathname);
+
+  if (!url) return;
+  if (state.lists.length === 0) {
+    showStatus('Bitte zuerst eine Liste anlegen, dann den Bookmarklet-Link erneut verwenden.', true, el.addStatus);
+    return;
+  }
+
+  el.quickAddForm.dataset.url = url;
+  populateQuickAddListSelect();
+  el.quickAddTitle.value = title;
+  el.quickAddImage.value = image;
+  el.quickAddPrice.value = price ? (parseGermanOrUsPrice(price) ?? '') : '';
+  el.quickAddCurrency.value = 'EUR';
+  showStatus('', false, el.quickAddStatus);
+  openModal(el.quickAddModal);
+}
+
+function parseGermanOrUsPrice(raw) {
+  const cleaned = String(raw).replace(/[^\d.,-]/g, '');
+  if (!cleaned) return null;
+  const lastComma = cleaned.lastIndexOf(',');
+  const lastDot = cleaned.lastIndexOf('.');
+  let normalized;
+  if (lastComma > lastDot) normalized = cleaned.replace(/\./g, '').replace(',', '.');
+  else if (lastDot > lastComma) normalized = cleaned.replace(/,/g, '');
+  else normalized = cleaned.replace(/,/g, '');
+  const value = parseFloat(normalized);
+  return Number.isFinite(value) ? value : null;
+}
+
+el.quickAddCancelBtn.addEventListener('click', closeModals);
+
+el.quickAddForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const listId = el.quickAddList.value;
+  const url = el.quickAddForm.dataset.url;
+  if (!listId || !url) return;
+
+  const submitBtn = el.quickAddForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    await api(`/api/lists/${listId}/items`, {
+      method: 'POST',
+      body: JSON.stringify({
+        url,
+        manual: true,
+        title: el.quickAddTitle.value.trim(),
+        image: el.quickAddImage.value.trim() || null,
+        price: el.quickAddPrice.value === '' ? null : parseFloat(el.quickAddPrice.value),
+        currency: el.quickAddCurrency.value.trim() || 'EUR',
+      }),
+    });
+    closeModals();
+    if (listId !== state.currentListId) {
+      await loadLists();
+      selectList(listId);
+    } else {
+      await Promise.all([loadItems(), loadLists()]);
+    }
+  } catch (err) {
+    showStatus(err.message, true, el.quickAddStatus);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+loadLists()
+  .then(checkPendingQuickAdd)
+  .catch((err) => showStatus(err.message, true));

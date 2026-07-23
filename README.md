@@ -10,8 +10,13 @@ jeder Liste siehst du die Gesamtsumme aller Preise.
 - Mehrere Listen (z. B. "Wohnzimmer", "Geburtstag", "Wunschliste")
 - Produkt per Link hinzufügen – Bild, Titel und Preis werden automatisch aus der
   Seite ausgelesen (Open Graph Meta-Tags, JSON-LD `Product`/`Offer`, `itemprop`)
-- Preis manuell überschreiben oder nachtragen, falls die Seite nichts liefert
+- Titel, Bild, Preis und Link eines Produkts jederzeit manuell bearbeiten (✎)
 - Einzelnes Produkt neu laden (⟳), z. B. wenn sich der Preis geändert hat
+- **Quick-Add Bookmarklet:** Für Shops mit Bot-Schutz (z. B. Amazon), bei denen
+  der Server die Seite nicht laden kann – ein Lesezeichen-Link, der die
+  Produktseite in deinem eigenen (bereits eingeloggten) Browser ausliest und
+  Titel/Bild/Preis vorausgefüllt an Scoop übergibt. Zu finden über den
+  "🔖 Quick-Add"-Button im Header
 - Automatische Summenberechnung aller Preise pro Liste
 - Daten werden persistent als JSON-Datei gespeichert (kein externer DB-Server nötig)
 

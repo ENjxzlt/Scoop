@@ -86,10 +86,22 @@ app.post('/api/lists/:id/items', async (req, res) => {
 
   let scraped = { title: null, image: null, price: null, currency: null };
   let scrapeError = null;
-  try {
-    scraped = await scrapeProduct(url);
-  } catch (err) {
-    scrapeError = err.message;
+  if (req.body?.manual) {
+    // Data captured client-side (e.g. via the quick-add bookmarklet) from
+    // the real, already-rendered page — skip the server-side scrape.
+    const rawPrice = req.body.price;
+    scraped = {
+      title: req.body.title ? String(req.body.title).trim().slice(0, 300) : null,
+      image: req.body.image ? String(req.body.image).trim() : null,
+      price: typeof rawPrice === 'number' ? rawPrice : parsePrice(rawPrice),
+      currency: req.body.currency ? String(req.body.currency).trim() : null,
+    };
+  } else {
+    try {
+      scraped = await scrapeProduct(url);
+    } catch (err) {
+      scrapeError = err.message;
+    }
   }
 
   const item = {

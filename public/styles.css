@@ -222,7 +222,9 @@ button {
 }
 
 input[type="text"],
-input[type="url"] {
+input[type="url"],
+input[type="number"],
+select {
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--text);
@@ -231,7 +233,9 @@ input[type="url"] {
 }
 
 input[type="text"]:focus,
-input[type="url"]:focus {
+input[type="url"]:focus,
+input[type="number"]:focus,
+select:focus {
   outline: 2px solid var(--accent);
 }
 
@@ -342,26 +346,128 @@ button:hover {
 
 .item-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: flex-end;
+  margin-top: auto;
 }
 
 .item-actions button {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  padding: 4px 6px;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  line-height: 1;
+  border-radius: var(--radius);
 }
 
 .item-actions button:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.item-actions .item-action-danger:hover {
   color: var(--danger);
+}
+
+.item-edit-form {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.item-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.item-edit-form input {
+  width: 100%;
+}
+
+.item-price-row .item-currency-input {
+  width: 56px;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.item-edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.item-edit-actions button {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 6px;
+  font-size: 0.85rem;
 }
 
 .empty-state {
   color: var(--text-dim);
   padding: 40px 0;
   text-align: center;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  z-index: 201;
+}
+
+.modal h2 {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+}
+
+.modal-text {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.modal-text-small {
+  font-size: 0.75rem;
+  margin-top: 10px;
+}
+
+.bookmarklet-link {
+  display: block;
+  text-align: center;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  cursor: grab;
+}
+
+.bookmarklet-link:hover {
+  filter: brightness(1.1);
 }
 
 .total-bar {

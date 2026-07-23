@@ -3,6 +3,35 @@ const cheerio = require('cheerio');
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+const REQUEST_HEADERS = {
+  'User-Agent': USER_AGENT,
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'Accept-Language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+};
+
+const BOT_BLOCK_PATTERNS = [
+  /captcha/i,
+  /enter the characters you see/i,
+  /robot check/i,
+  /pardon our interruption/i,
+  /are you a human/i,
+  /automated access/i,
+  /unusual traffic/i,
+  /access to this page has been denied/i,
+  /request blocked/i,
+  /verify you are a human/i,
+];
+
+function looksBotBlocked(html) {
+  const sample = html.slice(0, 20000);
+  return BOT_BLOCK_PATTERNS.some((pattern) => pattern.test(sample));
+}
+
 function parsePrice(raw) {
   if (raw === null || raw === undefined) return null;
   const str = String(raw).trim();
@@ -76,6 +105,66 @@ function meta($, ...selectors) {
   return null;
 }
 
+function text($, ...selectors) {
+  for (const sel of selectors) {
+    const val = $(sel).first().text().trim();
+    if (val) return val;
+  }
+  return null;
+}
+
+function attr($, selector, ...attrs) {
+  const el = $(selector).first();
+  if (!el.length) return null;
+  for (const a of attrs) {
+    const val = el.attr(a);
+    if (val) return val;
+  }
+  return null;
+}
+
+// Amazon and eBay rarely expose price through standard meta tags or
+// JSON-LD, so we fall back to their known page structure when the
+// generic extraction above comes up short. These selectors are
+// best-effort and may need updates if the sites change their markup.
+const SITE_EXTRACTORS = {
+  'amazon.': ($) => ({
+    title: text($, '#productTitle'),
+    price: parsePrice(
+      text(
+        $,
+        '#corePrice_feature_div .a-price .a-offscreen',
+        '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen',
+        '.a-price .a-offscreen',
+        '#priceblock_ourprice',
+        '#priceblock_dealprice'
+      )
+    ),
+    image: (() => {
+      const dynamic = attr($, '#landingImage', 'data-old-hires');
+      if (dynamic) return dynamic;
+      const dynamicJson = attr($, '#landingImage', 'data-a-dynamic-image');
+      if (dynamicJson) {
+        try {
+          const urls = Object.keys(JSON.parse(dynamicJson));
+          if (urls[0]) return urls[0];
+        } catch {
+          // ignore malformed attribute
+        }
+      }
+      return attr($, '#landingImage, #imgTagWrapperId img', 'src');
+    })(),
+  }),
+  'ebay.': ($) => ({
+    title: text($, 'h1.x-item-title__mainTitle span.ux-textspans', '.x-item-title__mainTitle'),
+    price: parsePrice(
+      text($, '.x-price-primary .ux-textspans', '[itemprop="price"]') ||
+        attr($, '[itemprop="price"]', 'content')
+    ),
+    image: attr($, '.ux-image-carousel-item img, #icImg', 'src'),
+  }),
+};
+
 async function scrapeProduct(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -83,10 +172,7 @@ async function scrapeProduct(url) {
   let html;
   try {
     const res = await fetch(url, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml',
-      },
+      headers: REQUEST_HEADERS,
       redirect: 'follow',
       signal: controller.signal,
     });
@@ -101,19 +187,37 @@ async function scrapeProduct(url) {
   const $ = cheerio.load(html);
   const jsonLd = findJsonLdOffer($) || {};
 
-  const title =
-    jsonLd.title ||
-    meta($, 'meta[property="og:title"]', 'meta[name="twitter:title"]') ||
-    $('title').first().text().trim() ||
-    null;
+  let hostname = '';
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    // already validated by the caller; ignore here
+  }
+  const siteKey = Object.keys(SITE_EXTRACTORS).find((k) => hostname.includes(k));
+  let site = {};
+  if (siteKey) {
+    try {
+      site = SITE_EXTRACTORS[siteKey]($);
+    } catch {
+      site = {};
+    }
+  }
+
+  const metaTitle = meta($, 'meta[property="og:title"]', 'meta[name="twitter:title"]');
+  const bareTitle = $('title').first().text().trim();
+  // JSON-LD and known-site selectors are curated/structured, so they take
+  // priority over generic meta tags, and the bare <title> tag is the
+  // weakest signal (also picks up junk like "Robot Check" on block pages).
+  const title = jsonLd.title || site.title || metaTitle || bareTitle || null;
 
   const image =
     jsonLd.image ||
+    site.image ||
     meta($, 'meta[property="og:image"]', 'meta[name="twitter:image"]') ||
     null;
 
-  let price = jsonLd.price;
-  if (price === null || price === undefined) {
+  let price = jsonLd.price ?? site.price ?? null;
+  if (price === null) {
     const priceRaw = meta(
       $,
       'meta[property="product:price:amount"]',
@@ -133,12 +237,18 @@ async function scrapeProduct(url) {
     );
   }
 
-  return {
+  const result = {
     title: title ? title.slice(0, 300) : null,
     image: image || null,
     price: price ?? null,
     currency: currency || null,
   };
+
+  if (result.price === null && !result.image && looksBotBlocked(html)) {
+    throw new Error('Bot-Schutz der Seite erkannt (Zugriff blockiert)');
+  }
+
+  return result;
 }
 
 module.exports = { scrapeProduct, parsePrice };
