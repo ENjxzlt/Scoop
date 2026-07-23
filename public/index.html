@@ -46,6 +46,9 @@
               <h1 id="currentListName">Willkommen</h1>
             </div>
             <div class="header-actions">
+              <button id="bookmarkletBtn" class="btn-ghost" type="button">
+                🔖 Quick-Add
+              </button>
               <button id="renameListBtn" class="btn-ghost" hidden>Umbenennen</button>
               <button id="deleteListBtn" class="btn-ghost danger" hidden>Löschen</button>
             </div>
@@ -76,6 +79,57 @@
           <span class="total-amount">Summe: <strong id="totalAmount">0,00 €</strong></span>
         </footer>
       </div>
+    </div>
+
+    <div class="modal-backdrop" id="modalBackdrop" hidden></div>
+
+    <div class="modal" id="bookmarkletModal" hidden>
+      <h2>Quick-Add Bookmarklet</h2>
+      <p class="modal-text">
+        Zieh diesen Link in deine Lesezeichenleiste. Auf einer Produktseite
+        (z. B. Amazon, eBay) klickst du ihn an — Scoop öffnet sich mit
+        Titel, Bild und Preis bereits ausgefüllt, weil dein eigener Browser
+        die Seite ausliest statt Scoop selbst (das umgeht Bot-Sperren wie
+        bei Amazon).
+      </p>
+      <a id="bookmarkletLink" class="bookmarklet-link" href="#">📥 Zu Scoop hinzufügen</a>
+      <p class="modal-text modal-text-small">
+        Funktioniert nicht per Klick (nur per Ziehen ins Lesezeichen), da es
+        Code enthält, der auf der jeweiligen Produktseite ausgeführt wird.
+      </p>
+      <div class="item-edit-actions">
+        <button id="bookmarkletCloseBtn" type="button" class="btn-ghost">Schließen</button>
+      </div>
+    </div>
+
+    <div class="modal" id="quickAddModal" hidden>
+      <h2>Produkt hinzufügen</h2>
+      <form id="quickAddForm" class="item-edit-form">
+        <label
+          >Liste
+          <select id="quickAddList"></select>
+        </label>
+        <label
+          >Titel
+          <input type="text" id="quickAddTitle" />
+        </label>
+        <label
+          >Bild-URL
+          <input type="url" id="quickAddImage" placeholder="https://…" />
+        </label>
+        <label
+          >Preis
+          <div class="item-price-row">
+            <input type="number" id="quickAddPrice" step="0.01" min="0" placeholder="Preis" />
+            <input type="text" id="quickAddCurrency" class="item-currency-input" maxlength="3" />
+          </div>
+        </label>
+        <p id="quickAddStatus" class="status-msg"></p>
+        <div class="item-edit-actions">
+          <button type="submit">Hinzufügen</button>
+          <button id="quickAddCancelBtn" type="button" class="btn-ghost">Abbrechen</button>
+        </div>
+      </form>
     </div>
 
     <script src="/app.js"></script>
