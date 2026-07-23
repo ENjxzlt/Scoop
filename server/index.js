@@ -13,13 +13,19 @@ function notFound(res, what) {
   return res.status(404).json({ error: `${what} not found` });
 }
 
+function parseQuantity(raw, fallback = 1) {
+  const value = typeof raw === 'number' ? raw : parseInt(raw, 10);
+  if (!Number.isFinite(value) || value < 1) return fallback;
+  return Math.floor(value);
+}
+
 // --- Lists -----------------------------------------------------------
 
 app.get('/api/lists', (req, res) => {
   const data = store.load();
   const lists = data.lists.map((list) => {
     const items = data.items.filter((item) => item.listId === list.id);
-    const total = items.reduce((sum, item) => sum + (item.price || 0), 0);
+    const total = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
     return { ...list, itemCount: items.length, total };
   });
   res.json(lists);
@@ -112,6 +118,7 @@ app.post('/api/lists/:id/items', async (req, res) => {
     image: scraped.image,
     price: scraped.price,
     currency: scraped.currency || 'EUR',
+    quantity: parseQuantity(req.body?.quantity),
     createdAt: new Date().toISOString(),
   };
 
@@ -125,7 +132,7 @@ app.put('/api/items/:id', (req, res) => {
   const item = data.items.find((i) => i.id === req.params.id);
   if (!item) return notFound(res, 'Item');
 
-  const { title, image, price, currency, url } = req.body || {};
+  const { title, image, price, currency, url, quantity } = req.body || {};
   if (title !== undefined) item.title = String(title).slice(0, 300);
   if (image !== undefined) item.image = image || null;
   if (url !== undefined) item.url = url;
@@ -134,6 +141,7 @@ app.put('/api/items/:id', (req, res) => {
     const parsed = typeof price === 'number' ? price : parsePrice(price);
     item.price = parsed;
   }
+  if (quantity !== undefined) item.quantity = parseQuantity(quantity, item.quantity || 1);
 
   store.save(data);
   res.json(item);
