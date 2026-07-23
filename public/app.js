@@ -5,6 +5,10 @@ const state = {
 };
 
 const el = {
+  sidebar: document.getElementById('sidebar'),
+  sidebarBackdrop: document.getElementById('sidebarBackdrop'),
+  sidebarToggle: document.getElementById('sidebarToggle'),
+  sidebarClose: document.getElementById('sidebarClose'),
   listNav: document.getElementById('listNav'),
   newListForm: document.getElementById('newListForm'),
   newListName: document.getElementById('newListName'),
@@ -22,6 +26,48 @@ const el = {
   totalCount: document.getElementById('totalCount'),
   totalAmount: document.getElementById('totalAmount'),
 };
+
+const desktopQuery = window.matchMedia('(min-width: 901px)');
+const SIDEBAR_PREF_KEY = 'scoop:sidebarOpen';
+
+function isDesktop() {
+  return desktopQuery.matches;
+}
+
+function getStoredSidebarOpen() {
+  const stored = localStorage.getItem(SIDEBAR_PREF_KEY);
+  return stored === null ? true : stored === 'true';
+}
+
+let sidebarOpen = isDesktop() ? getStoredSidebarOpen() : false;
+
+function applySidebarState() {
+  el.sidebar.classList.toggle('open', sidebarOpen);
+  el.sidebarBackdrop.classList.toggle('visible', sidebarOpen && !isDesktop());
+}
+
+function openSidebar() {
+  sidebarOpen = true;
+  if (isDesktop()) localStorage.setItem(SIDEBAR_PREF_KEY, 'true');
+  applySidebarState();
+}
+
+function closeSidebar() {
+  sidebarOpen = false;
+  if (isDesktop()) localStorage.setItem(SIDEBAR_PREF_KEY, 'false');
+  applySidebarState();
+}
+
+function toggleSidebar() {
+  if (sidebarOpen) closeSidebar();
+  else openSidebar();
+}
+
+applySidebarState();
+el.sidebarToggle.addEventListener('click', toggleSidebar);
+el.sidebarClose.addEventListener('click', closeSidebar);
+el.sidebarBackdrop.addEventListener('click', closeSidebar);
+desktopQuery.addEventListener('change', applySidebarState);
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
@@ -80,6 +126,7 @@ async function selectList(id) {
   renderListNav();
   renderHeader();
   await loadItems();
+  if (!isDesktop()) closeSidebar();
 }
 
 function renderHeader() {

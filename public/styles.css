@@ -27,26 +27,72 @@ body {
 }
 
 .app {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: 1fr auto;
+  display: flex;
   min-height: 100vh;
+  position: relative;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 90;
+}
+
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar {
-  grid-row: 1 / span 2;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 85vw;
   background: var(--panel);
   border-right: 1px solid var(--border);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  z-index: 100;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 6px 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: var(--radius);
+}
+
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--panel-2);
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.sidebar-close {
+  margin-left: auto;
 }
 
 .logo-icon {
@@ -104,8 +150,17 @@ body {
   min-width: 0;
 }
 
+.main-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .content {
-  padding: 24px 32px;
+  flex: 1;
+  padding: 16px;
   overflow-y: auto;
 }
 
@@ -113,12 +168,24 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 20px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .content-header h1 {
   margin: 0;
   font-size: 1.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -128,12 +195,14 @@ body {
 
 .add-item-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 8px;
 }
 
 .add-item-form input {
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 .status-msg {
@@ -296,15 +365,16 @@ button:hover {
 }
 
 .total-bar {
-  grid-column: 2;
   position: sticky;
   bottom: 0;
   background: var(--panel);
   border-top: 1px solid var(--border);
-  padding: 14px 32px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   font-size: 0.95rem;
   color: var(--text-dim);
 }
@@ -312,4 +382,66 @@ button:hover {
 .total-amount strong {
   color: var(--text);
   font-size: 1.2rem;
+}
+
+/* Small screens: single-column cards, tighter spacing, no room for a
+   permanent sidebar column, so it stays an off-canvas drawer. */
+@media (max-width: 600px) {
+  .items-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .content-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .add-item-form {
+    flex-direction: column;
+  }
+
+  .add-item-form input,
+  .add-item-form button {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+/* Wide screens: sidebar becomes a normal in-flow column that can be
+   collapsed (rather than an overlay drawer), and gets more breathing room. */
+@media (min-width: 901px) {
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .sidebar-close {
+    display: none;
+  }
+
+  .sidebar {
+    position: static;
+    max-width: none;
+    transform: none;
+    width: 240px;
+    flex-shrink: 0;
+    transition: width 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
+  }
+
+  .sidebar:not(.open) {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right-color: transparent;
+    overflow: hidden;
+  }
+
+  .content,
+  .total-bar {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .content {
+    padding-top: 24px;
+  }
 }
