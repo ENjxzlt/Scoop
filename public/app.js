@@ -2,6 +2,7 @@ const state = {
   lists: [],
   currentListId: null,
   items: [],
+  editingItemId: null,
 };
 
 const el = {
@@ -156,9 +157,146 @@ function renderItems() {
   el.emptyState.hidden = state.items.length > 0 || !state.currentListId;
 
   for (const item of state.items) {
-    el.itemsGrid.appendChild(renderItemCard(item));
+    el.itemsGrid.appendChild(
+      item.id === state.editingItemId ? renderItemEditForm(item) : renderItemCard(item)
+    );
   }
   renderTotal();
+}
+
+function renderItemEditForm(item) {
+  const card = document.createElement('div');
+  card.className = 'item-card';
+
+  const imageWrap = document.createElement('div');
+  imageWrap.className = 'item-image-wrap';
+  const preview = document.createElement('img');
+  preview.alt = '';
+  preview.hidden = !item.image;
+  if (item.image) preview.src = item.image;
+  const placeholder = document.createElement('span');
+  placeholder.className = 'placeholder';
+  placeholder.textContent = '🛒';
+  placeholder.hidden = Boolean(item.image);
+  imageWrap.appendChild(preview);
+  imageWrap.appendChild(placeholder);
+
+  const form = document.createElement('form');
+  form.className = 'item-edit-form';
+
+  const titleLabel = document.createElement('label');
+  titleLabel.textContent = 'Titel';
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.value = item.title || '';
+  titleLabel.appendChild(titleInput);
+
+  const imageLabel = document.createElement('label');
+  imageLabel.textContent = 'Bild-URL';
+  const imageInput = document.createElement('input');
+  imageInput.type = 'url';
+  imageInput.placeholder = 'https://…';
+  imageInput.value = item.image || '';
+  imageInput.addEventListener('input', () => {
+    const url = imageInput.value.trim();
+    if (url) {
+      preview.src = url;
+      preview.hidden = false;
+      placeholder.hidden = true;
+    } else {
+      preview.hidden = true;
+      placeholder.hidden = false;
+    }
+  });
+  preview.addEventListener('error', () => {
+    preview.hidden = true;
+    placeholder.hidden = false;
+  });
+  imageLabel.appendChild(imageInput);
+
+  const urlLabel = document.createElement('label');
+  urlLabel.textContent = 'Produkt-Link';
+  const urlInput = document.createElement('input');
+  urlInput.type = 'url';
+  urlInput.required = true;
+  urlInput.value = item.url || '';
+  urlLabel.appendChild(urlInput);
+
+  const priceRow = document.createElement('div');
+  priceRow.className = 'item-price-row';
+  const priceInput = document.createElement('input');
+  priceInput.type = 'number';
+  priceInput.step = '0.01';
+  priceInput.min = '0';
+  priceInput.placeholder = 'Preis';
+  priceInput.value = item.price ?? '';
+  const currencyInput = document.createElement('input');
+  currencyInput.type = 'text';
+  currencyInput.className = 'item-currency-input';
+  currencyInput.maxLength = 3;
+  currencyInput.value = item.currency || 'EUR';
+  priceRow.appendChild(priceInput);
+  priceRow.appendChild(currencyInput);
+  const priceLabel = document.createElement('label');
+  priceLabel.textContent = 'Preis';
+  priceLabel.appendChild(priceRow);
+
+  const editStatus = document.createElement('p');
+  editStatus.className = 'status-msg';
+
+  const actions = document.createElement('div');
+  actions.className = 'item-edit-actions';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'submit';
+  saveBtn.textContent = 'Speichern';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'btn-ghost';
+  cancelBtn.textContent = 'Abbrechen';
+  cancelBtn.addEventListener('click', () => {
+    state.editingItemId = null;
+    renderItems();
+  });
+
+  actions.appendChild(saveBtn);
+  actions.appendChild(cancelBtn);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const url = urlInput.value.trim();
+    if (!url) return;
+    saveBtn.disabled = true;
+    try {
+      await api(`/api/items/${item.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: titleInput.value.trim(),
+          image: imageInput.value.trim() || null,
+          url,
+          price: priceInput.value === '' ? null : parseFloat(priceInput.value),
+          currency: currencyInput.value.trim() || 'EUR',
+        }),
+      });
+      state.editingItemId = null;
+      await Promise.all([loadItems(), loadLists()]);
+    } catch (err) {
+      showStatus(err.message, true, editStatus);
+      saveBtn.disabled = false;
+    }
+  });
+
+  form.appendChild(titleLabel);
+  form.appendChild(imageLabel);
+  form.appendChild(urlLabel);
+  form.appendChild(priceLabel);
+  form.appendChild(editStatus);
+  form.appendChild(actions);
+
+  card.appendChild(imageWrap);
+  card.appendChild(form);
+  return card;
 }
 
 function renderItemCard(item) {
@@ -223,8 +361,18 @@ function renderItemCard(item) {
   const actions = document.createElement('div');
   actions.className = 'item-actions';
 
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✎';
+  editBtn.setAttribute('aria-label', 'Bearbeiten');
+  editBtn.title = 'Titel, Bild oder Preis manuell eintragen';
+  editBtn.addEventListener('click', () => {
+    state.editingItemId = item.id;
+    renderItems();
+  });
+
   const refreshBtn = document.createElement('button');
-  refreshBtn.textContent = '⟳ Aktualisieren';
+  refreshBtn.textContent = '⟳';
+  refreshBtn.setAttribute('aria-label', 'Aktualisieren');
   refreshBtn.title = 'Bild/Preis neu vom Link laden';
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
@@ -239,13 +387,17 @@ function renderItemCard(item) {
   });
 
   const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = '✕ Entfernen';
+  deleteBtn.textContent = '✕';
+  deleteBtn.className = 'item-action-danger';
+  deleteBtn.setAttribute('aria-label', 'Entfernen');
+  deleteBtn.title = 'Aus der Liste entfernen';
   deleteBtn.addEventListener('click', async () => {
     if (!confirm('Dieses Produkt aus der Liste entfernen?')) return;
     await api(`/api/items/${item.id}`, { method: 'DELETE' });
     await Promise.all([loadItems(), loadLists()]);
   });
 
+  actions.appendChild(editBtn);
   actions.appendChild(refreshBtn);
   actions.appendChild(deleteBtn);
 

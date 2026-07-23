@@ -342,20 +342,67 @@ button:hover {
 
 .item-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: flex-end;
+  margin-top: auto;
 }
 
 .item-actions button {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  padding: 4px 6px;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+  line-height: 1;
+  border-radius: var(--radius);
 }
 
 .item-actions button:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.item-actions .item-action-danger:hover {
   color: var(--danger);
+}
+
+.item-edit-form {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.item-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.item-edit-form input {
+  width: 100%;
+}
+
+.item-price-row .item-currency-input {
+  width: 56px;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.item-edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.item-edit-actions button {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 6px;
+  font-size: 0.85rem;
 }
 
 .empty-state {
